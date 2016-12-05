@@ -1,0 +1,8 @@
+[package]
+name = "runiterm"
+version = "0.1.0"
+authors = ["Alfredo Di Napoli <alfredo.dinapoli@gmail.com>"]
+
+[dependencies]
+select = { git = "https://github.com/utkarshkukreti/select.rs", rev = "738ea48c670bb9001bc070b7a15831630b83e77e" }
+hyper  = "0.9.12"
