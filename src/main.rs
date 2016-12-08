@@ -7,6 +7,7 @@ use hyper::client::Client;
 
 use std::io::Read;
 use std::iter::FromIterator;
+use std::collections::HashSet;
 
 use rustc_serialize::base64::{ToBase64};
 use rustc_serialize::base64;
@@ -46,16 +47,18 @@ fn main() {
         let pred = Name("table").descendant(Name("table").descendant(Name("td")));
         let tds:Vec<_> = node.find(pred).collect();
 
-        let mut images = Vec::new();
+        let mut images0 = Vec::new();
         for td in &tds {
-            images.extend(td.find(Name("img")));
+            images0.extend(td.find(Name("img")).map(|x| x.attr("src").unwrap_or("")));
         }
+
+        let images:HashSet<_> = HashSet::from_iter(images0);
 
         //let images:Vec<_> = tds0.flat_map(|t| t.find(Name("img")).collect::<Vec<_>>()).collect();
         //let text   = tds.nth(1).map(|t| t.find(Name("p")));
         for td in images {
             // TODO: Proper Error handling, avoid unwrap_or
-            let img_url = td.attr("src").unwrap_or("");
+            let img_url = td;
             println!("--> {:?}", img_url);
             let res = download_img(&client, img_url).map(|x| to_base_64(&x));
             print!("\x1B]1337;File=inline=1:{}\x07", res.unwrap_or(String::from("")));
