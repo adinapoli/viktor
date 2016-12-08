@@ -58,7 +58,8 @@ fn main() {
             let img_url = td.attr("src").unwrap_or("");
             println!("--> {:?}", img_url);
             let res = download_img(&client, img_url).map(|x| to_base_64(&x));
-            println!("--> {:?}", res)
+            print!("\x1B]1337;File=inline=1:{}\x07", res.unwrap_or(String::from("")));
+            print!("\n");
         }
     }
 }
