@@ -5,6 +5,7 @@ extern crate rustc_serialize;
 
 use hyper::client::Client;
 
+use std::env;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::collections::HashSet;
@@ -34,6 +35,67 @@ fn to_base_64(img: &[u8]) -> String {
     img.to_base64(cfg)
 }
 
+#[derive(Debug)]
+enum TerminalInUse {
+    TmuxOrScreen,
+    StandardTerminal
+}
+
+fn user_terminal() -> TerminalInUse {
+    match env::var("TERM") {
+        Err(_) => return TerminalInUse::StandardTerminal,
+        Ok(ref s) => if s.contains("screen") { return TerminalInUse::TmuxOrScreen }
+    }
+    return TerminalInUse::StandardTerminal
+}
+
+// TODO: This doesn't display nicely at all inside tmux, we neeed to find
+// a workaround. One could be to use https://github.com/PistonDevelopers/image
+// to load the image in memory and get its dimension, and using explicit height
+// in the iTerm inline capability.
+fn display_inline_image(img_mb: Result<String, hyper::error::Error>) {
+    match img_mb {
+        Err(_) => return,
+        Ok(i) => {
+            let (initial_seq, final_seq) = match user_terminal() {
+                TerminalInUse::TmuxOrScreen => ("\x1BPtmux;\x1B\x1B]", "\x07\x1B\\"),
+                TerminalInUse::StandardTerminal => ("\x1B]", "\x07")
+            };
+            println!("{}1337;File=inline=1:{}{}", initial_seq, i, final_seq);
+        }
+    }
+}
+
+fn find_images<'a>(tds: &'a Vec<Node>) -> HashSet<&'a str> {
+    let mut images0 = Vec::new();
+    for td in tds {
+        images0.extend(td.find(Name("img")).filter_map(|x| x.attr("src").and_then(filter_image)));
+    }
+
+    HashSet::from_iter(images0)
+}
+
+fn filter_image(img: &str) -> Option<&str> {
+    if img.contains("logo") { None } else { Some(img) }
+}
+
+fn find_descriptions(tds: &Vec<Node>) -> HashSet<String> {
+    let mut descs = Vec::new();
+    for td in tds {
+        descs.extend(td.find(Name("p")).filter_map(|x| filter_description(x.text())));
+    }
+
+    HashSet::from_iter(descs)
+}
+
+fn filter_description(d: String) -> Option<String> {
+    if d.is_empty() || d.contains("Revise Conditions") {
+        None
+    } else {
+        Some(d)
+    }
+}
+
 fn main() {
     let client = Client::new();
     let mut body = String::new();
@@ -47,22 +109,15 @@ fn main() {
         let pred = Name("table").descendant(Name("table").descendant(Name("td")));
         let tds:Vec<_> = node.find(pred).collect();
 
-        let mut images0 = Vec::new();
-        for td in &tds {
-            images0.extend(td.find(Name("img")).map(|x| x.attr("src").unwrap_or("")));
+        let images = find_images(&tds);
+        for img in images {
+            println!("--> {:?}", img);
+            display_inline_image(download_img(&client, img).map(|x| to_base_64(&x)));
         }
 
-        let images:HashSet<_> = HashSet::from_iter(images0);
-
-        //let images:Vec<_> = tds0.flat_map(|t| t.find(Name("img")).collect::<Vec<_>>()).collect();
-        //let text   = tds.nth(1).map(|t| t.find(Name("p")));
-        for td in images {
-            // TODO: Proper Error handling, avoid unwrap_or
-            let img_url = td;
-            println!("--> {:?}", img_url);
-            let res = download_img(&client, img_url).map(|x| to_base_64(&x));
-            print!("\x1B]1337;File=inline=1:{}\x07", res.unwrap_or(String::from("")));
-            print!("\n");
+        let descriptions = find_descriptions(&tds);
+        for desc in descriptions {
+            println!("--> {:?}", desc);
         }
     }
 }
