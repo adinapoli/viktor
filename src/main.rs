@@ -1,4 +1,7 @@
 
+#[macro_use]
+extern crate lazy_static;
+
 extern crate hyper;
 extern crate select;
 extern crate rustc_serialize;
@@ -16,6 +19,8 @@ use rustc_serialize::base64;
 use select::document::Document;
 use select::node::Node;
 use select::predicate::{Predicate, Attr, Name};
+
+mod apixu_weather;
 
 static RUNNERS_WORLD_URL: &'static str = "http://www.runnersworld.com/what-to-wear?gender=m&temp=35&conditions=pc&wind=nw&time=dawn&intensity=n&feel=ib";
 
@@ -123,6 +128,7 @@ fn main() {
 }
 
 #[test]
+#[ignore]
 fn can_download_img() {
     let client = Client::new();
     let mut body = Vec::new();

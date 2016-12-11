@@ -3,6 +3,7 @@ name = "runiterm"
 version = "0.1.0"
 dependencies = [
  "hyper 0.9.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "lazy_static 0.2.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "rustc-serialize 0.3.21 (registry+https://github.com/rust-lang/crates.io-index)",
  "select 0.3.0 (git+https://github.com/utkarshkukreti/select.rs?rev=738ea48c670bb9001bc070b7a15831630b83e77e)",
 ]
