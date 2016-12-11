@@ -12,6 +12,7 @@ use std::env;
 use std::io::Read;
 use std::iter::FromIterator;
 use std::collections::HashSet;
+use std::process;
 
 use rustc_serialize::base64::{ToBase64};
 use rustc_serialize::base64;
@@ -21,6 +22,7 @@ use select::node::Node;
 use select::predicate::{Predicate, Attr, Name};
 
 mod apixu_weather;
+mod cli;
 
 static RUNNERS_WORLD_URL: &'static str = "http://www.runnersworld.com/what-to-wear?gender=m&temp=35&conditions=pc&wind=nw&time=dawn&intensity=n&feel=ib";
 
@@ -102,6 +104,16 @@ fn filter_description(d: String) -> Option<String> {
 }
 
 fn main() {
+   match cli::Args::parse().map_err(|_| ()).and_then(run) {
+        Ok(()) => process::exit(0),
+        Err(_) => {
+            println!("{}", "TODO");
+            process::exit(1);
+        }
+   }
+}
+
+fn run(args: cli::Args) -> Result<(), ()> {
     let client = Client::new();
     let mut body = String::new();
     let _ = client.get(RUNNERS_WORLD_URL)
@@ -125,6 +137,8 @@ fn main() {
             println!("--> {:?}", desc);
         }
     }
+
+    Ok(())
 }
 
 #[test]

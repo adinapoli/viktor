@@ -4,7 +4,8 @@ version = "0.1.0"
 authors = ["Alfredo Di Napoli <alfredo.dinapoli@gmail.com>"]
 
 [dependencies]
-rustc-serialize = "0.3"
+rustc-serialize = "=0.3"
 select = { git = "https://github.com/utkarshkukreti/select.rs", rev = "738ea48c670bb9001bc070b7a15831630b83e77e" }
-hyper  = "0.9.12"
-lazy_static = "0.2.2"
+hyper  = "=0.9.12"
+lazy_static = "=0.2.2"
+clap = "=2.19.0"

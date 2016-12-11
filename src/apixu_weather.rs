@@ -142,6 +142,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[ignore]
     fn can_decode_a_current_weather_request() {
         let client = Client::new();
         match current_weather(&client, Some("Marsala")) {
