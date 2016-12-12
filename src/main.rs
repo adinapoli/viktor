@@ -22,6 +22,7 @@ use select::node::Node;
 use select::predicate::{Predicate, Attr, Name};
 
 mod apixu_weather;
+mod runners_world;
 mod cli;
 
 static RUNNERS_WORLD_URL: &'static str = "http://www.runnersworld.com/what-to-wear?gender=m&temp=35&conditions=pc&wind=nw&time=dawn&intensity=n&feel=ib";
@@ -103,17 +104,23 @@ fn filter_description(d: String) -> Option<String> {
     }
 }
 
+#[derive(Debug)]
+enum AppError {
+    CliError(cli::CliParseError),
+    GenericError
+}
+
 fn main() {
-   match cli::Args::parse().map_err(|_| ()).and_then(run) {
+   match cli::Args::parse().map_err(AppError::CliError).and_then(run) {
         Ok(()) => process::exit(0),
-        Err(_) => {
-            println!("{}", "TODO");
+        Err(e) => {
+            println!("{:?}", e);
             process::exit(1);
         }
    }
 }
 
-fn run(args: cli::Args) -> Result<(), ()> {
+fn run(args: cli::Args) -> Result<(), AppError> {
     let client = Client::new();
     let mut body = String::new();
     let _ = client.get(RUNNERS_WORLD_URL)
@@ -121,6 +128,8 @@ fn run(args: cli::Args) -> Result<(), ()> {
         .map(|mut r| r.read_to_string(&mut body))
         .expect("Couldn't contact Runner's World website.");
     let document = Document::from(body.as_str());
+
+    let weather = apixu_weather::current_weather(&client, args.city);
 
     for node in document.find(Attr("id", "content")) {
         let pred = Name("table").descendant(Name("table").descendant(Name("td")));

@@ -14,7 +14,7 @@ struct ApixuCfg {
     api_key: String,
 }
 
-type City = str;
+type City = String;
 
 #[derive(RustcDecodable, Debug, Default)]
 pub struct Location {
@@ -118,15 +118,15 @@ lazy_static! {
 }
 
 // Build an Url to be used by Hyper.
-fn mk_url(uri_path: &str, params: Vec<(&str, &str)>) -> String {
+fn mk_url(uri_path: &str, params: Vec<(&str, &String)>) -> String {
     let param_string: String = params.iter().fold(String::new(), |acc, &x| format!("{}&{}={}", acc, x.0, x.1));
     String::from(format!("{}{}?key={}{}", APIXU_URL, uri_path, APIXU_CFG.api_key, param_string))
 }
 
 /// Gets the current weather based on Auto IP.
 // TODO: Better error handling.
-pub fn current_weather(client: &hyper::client::Client, city: Option<&City>) -> Result<CurrentWeather, ApixuError> {
-    let url = mk_url("current.json", vec![("q", city.unwrap_or("auto:ip"))]);
+pub fn current_weather(client: &hyper::client::Client, city: Option<City>) -> Result<CurrentWeather, ApixuError> {
+    let url = mk_url("current.json", vec![("q", &city.unwrap_or("auto:ip".to_owned()))]);
     let mut response = try!(client.get(&url).send());
     if response.status != hyper::status::StatusCode::Ok {
         return Err(ApixuError::InvalidRequest(url, response));
@@ -145,7 +145,7 @@ mod tests {
     #[ignore]
     fn can_decode_a_current_weather_request() {
         let client = Client::new();
-        match current_weather(&client, Some("Marsala")) {
+        match current_weather(&client, Some("Marsala".to_owned())) {
             Ok(cw) => {
                 assert_eq!(cw.location.name, "Marsala");
                 assert_eq!(cw.location.country, "Italy")

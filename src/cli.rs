@@ -1,7 +1,7 @@
 
 extern crate clap;
 
-use cli::clap::{Arg, App, ArgMatches};
+use cli::clap::{Arg, App};
 use std;
 
 #[derive(Debug)]
@@ -11,8 +11,8 @@ pub enum CliParseError {
 
 #[derive(Debug)]
 pub struct Args {
-    gender: String,
-    city: Option<String>,
+    gender: Gender,
+    pub city: Option<String>,
 }
 
 // TODO: This is horrid, we should be able to use lifetime specifier
@@ -20,10 +20,14 @@ pub struct Args {
 impl Args {
     pub fn parse() -> Result<Args, CliParseError> {
         let matches = cli().get_matches();
-        Ok(Args {
-            gender: String::from(matches.value_of("gender").unwrap_or("male")),
+        let gender = try!(matches.value_of("gender")
+            .ok_or(CliParseError::ParseGenderError(String::from("Gender is required.")))
+            .and_then(parse_gender));
+        let args = Args {
+            gender: gender,
             city: matches.value_of("city").map(String::from),
-        })
+        };
+        Ok(args)
     }
 }
 
@@ -33,11 +37,19 @@ enum Gender {
     Female,
 }
 
+fn parse_gender(input: &str) -> Result<Gender, CliParseError> {
+    match input {
+        "male" => Ok(Gender::Male),
+        "female" => Ok(Gender::Female),
+        _ => Err(CliParseError::ParseGenderError(String::from(input))),
+    }
+}
+
 pub fn cli() -> App<'static, 'static> {
     let gender_arg = Arg::with_name("gender")
         .long("gender")
         .short("g")
-        .value_name("(male|female)")
+        .value_name("male|female")
         .help("Your gender ('male' or 'female')")
         .required(true);
     let city_arg = Arg::with_name("city")
