@@ -12,6 +12,7 @@ use std::process;
 
 use select::document::Document;
 use select::predicate::{Predicate, Attr, Name};
+use std::iter::FromIterator;
 
 mod apixu_weather;
 mod runners_world;
@@ -48,8 +49,9 @@ fn run(args: cli::Args) -> Result<(), AppError> {
         let tds:Vec<_> = node.find(pred).collect();
 
         let images = runners_world::find_images(&tds);
-        for img_info in images {
-            println!("--> {:?}", img_info);
+        let mut images_sorted = Vec::from_iter(images);
+        images_sorted.sort();
+        for img_info in images_sorted {
             runners_world::display_inline_image(&img_info,
                                                 runners_world::download_img(&client, img_info.url)
                                                 .map(|x| runners_world::to_base_64(&x))

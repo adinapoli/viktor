@@ -7,6 +7,7 @@ use std::env;
 use std::num;
 use std::fmt;
 use std::io::Read;
+use std::cmp::{Ord, Ordering};
 use rustc_serialize::base64::{ToBase64};
 use std::iter::FromIterator;
 use rustc_serialize::base64;
@@ -38,17 +39,47 @@ pub fn form_builder() -> FormBuilder {
     }
 }
 
-#[derive(Eq, Debug, PartialEq, Hash)]
+#[derive(Eq, Debug, PartialOrd, PartialEq, Hash)]
 pub struct Image<'a> {
     pub url: &'a str,
     width: TermDimension,
     height: TermDimension,
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Eq, PartialOrd, PartialEq, Hash)]
 enum TermDimension {
     Auto,
     Dimension(u8)
+}
+
+#[derive(Debug, Ord, Eq, PartialOrd, PartialEq)]
+enum BodyPart {
+    Head,
+    Torso,
+    Legs,
+    Feet
+}
+
+impl <'a> Image<'a> {
+    fn body_part(&self) -> Option<BodyPart> {
+        if self.url.contains("head") { return Some(BodyPart::Head) }
+        if self.url.contains("torso") { return Some(BodyPart::Torso) }
+        if self.url.contains("legs") { return Some(BodyPart::Legs) }
+        if self.url.contains("feet") { return Some(BodyPart::Feet) }
+        return None
+    }
+}
+
+// Order an image according to the part of the body: head, legs, torso, feet.
+impl <'a> Ord for Image<'a> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        match (self.body_part(), other.body_part()) {
+            (None, None) => Ordering::Equal,
+            (Some(_), None) => Ordering::Greater,
+            (None, Some(_)) => Ordering::Less,
+            (Some(a), Some(b)) => a.cmp(&b),
+        }
+    }
 }
 
 impl fmt::Display for TermDimension {
