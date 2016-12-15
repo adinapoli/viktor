@@ -75,11 +75,11 @@ pub struct Location {
     /// Longitude in decimal degree
     lon: f32,
     /// Location name
-    name: String,
+    pub name: String,
     /// Region or state of the location, if available
     region: Option<String>,
     /// Location country
-    country: String,
+    pub country: String,
     /// Time zone name
     tz_id: String,
     /// Local date and time in unix time
@@ -96,7 +96,7 @@ pub struct CurrentWeather {
 
 #[derive(Deserialize, Debug, Default)]
 pub struct WeatherCondition {
-    text: String,
+    pub text: String,
     pub code: u32,
 }
 
@@ -116,7 +116,7 @@ pub struct Current {
     /// Wind speed in miles per hour
     pub wind_mph: f32,
     /// Wind speed in kilometer per hour
-    wind_kph: f32,
+    pub wind_kph: f32,
     /// Wind direction in degrees
     wind_degree: i32,
     /// Wind direction as 16 point compass. e.g.: NSW
@@ -206,10 +206,10 @@ fn mk_url(uri_path: &str, params: Vec<(&str, &String)>) -> String {
 /// Gets the current weather based on Auto IP.
 // TODO: Better error handling.
 pub fn current_weather(client: &hyper::client::Client,
-                       city: Option<City>)
+                       city: &Option<City>)
                        -> Result<CurrentWeather, ApixuError> {
-    let url = mk_url("current.json",
-                     vec![("q", &city.unwrap_or("auto:ip".to_owned()))]);
+    let the_city = city.clone().unwrap_or("auto:ip".to_owned());
+    let url = mk_url("current.json", vec![("q", &the_city)]);
     let mut response = try!(client.get(&url).send());
     if response.status != hyper::status::StatusCode::Ok {
         return Err(ApixuError::InvalidRequest(url, response));
@@ -240,7 +240,7 @@ mod tests {
     #[ignore]
     fn can_decode_a_current_weather_request() {
         let client = Client::new();
-        match current_weather(&client, Some("Marsala".to_owned())) {
+        match current_weather(&client, &Some("Marsala".to_owned())) {
             Ok(cw) => {
                 assert_eq!(cw.location.name, "Marsala");
                 assert_eq!(cw.location.country, "Italy")

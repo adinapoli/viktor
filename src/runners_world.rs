@@ -365,20 +365,25 @@ fn mk_image<'a>(img_node: &Node<'a>) -> Option<Image<'a>> {
     }
 }
 
-pub fn find_descriptions(tds: &Vec<Node>) -> HashSet<String> {
+pub fn find_descriptions(tds: &Vec<Node>) -> HashSet<(String, String)> {
     let mut descs = Vec::new();
-    for td in tds {
-        descs.extend(td.find(Name("p")).filter_map(|x| filter_description(x.text())));
+    for td in tds.iter().skip(1) {
+        descs.extend(td.find(Name("p")).filter_map(|x| filter_description(x)));
     }
 
     HashSet::from_iter(descs)
 }
 
-fn filter_description(d: String) -> Option<String> {
-    if d.is_empty() || d.contains("Revise Conditions") {
-        None
-    } else {
-        Some(d)
+fn filter_description(d: Node) -> Option<(String, String)> {
+    match (d.first_child().map(|v| v.text()), d.last_child().map(|v| v.text())) {
+        (Some(item), Some(desc)) => {
+            if desc.is_empty() || desc.contains("Revise Conditions") {
+                None
+            } else {
+                Some((item, desc))
+            }
+        }
+        _ => None,
     }
 }
 

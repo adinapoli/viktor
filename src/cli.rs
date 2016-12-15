@@ -2,6 +2,7 @@
 extern crate clap;
 
 use cli::clap::{Arg, App};
+use std::fmt;
 use std;
 
 #[derive(Debug)]
@@ -43,12 +44,33 @@ pub enum Gender {
     Female,
 }
 
+impl fmt::Display for Gender {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Gender::Male => write!(f, "Male"),
+            Gender::Female => write!(f, "Female"),
+        }
+    }
+}
+
+
 #[derive(Debug, PartialEq, Eq)]
 pub enum Intensity {
     EasyRun,
     LongRun,
     HardWorkout,
     Race,
+}
+
+impl fmt::Display for Intensity {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match *self {
+            Intensity::EasyRun => write!(f, "Easy Run"),
+            Intensity::LongRun => write!(f, "Long Run"),
+            Intensity::HardWorkout => write!(f, "Hard Workout"),
+            Intensity::Race => write!(f, "Race"),
+        }
+    }
 }
 
 fn parse_gender(input: &str) -> Result<Gender, CliParseError> {
