@@ -2,7 +2,6 @@
 extern crate hyper;
 extern crate rustc_serialize;
 
-use hyper::client::Client;
 use std::env;
 use std::num;
 use std::fmt;
@@ -383,15 +382,20 @@ fn filter_description(d: String) -> Option<String> {
     }
 }
 
-#[test]
-#[ignore]
-fn can_download_img() {
-    let client = Client::new();
-    let mut body = Vec::new();
-    let _ = client.get("http://www.runnersworld.com/sites/runnersworld.\
-              com/modules/custom/rw_what_to_wear/images/logo.png")
-        .send()
-        .map(|mut r| r.read_to_end(&mut body))
-        .expect("Couldn't contact Runner's World website.");
-    assert!(body.len() != 0);
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use hyper::client::Client;
+    #[test]
+    #[ignore]
+    fn can_download_img() {
+        let client = Client::new();
+        let mut body = Vec::new();
+        let _ = client.get("http://www.runnersworld.com/sites/runnersworld.\
+                  com/modules/custom/rw_what_to_wear/images/logo.png")
+            .send()
+            .map(|mut r| r.read_to_end(&mut body))
+            .expect("Couldn't contact Runner's World website.");
+        assert!(body.len() != 0);
+    }
 }

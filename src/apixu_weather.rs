@@ -8,7 +8,7 @@ use std;
 use std::env;
 
 static APIXU_URL: &'static str = "https://api.apixu.com/v1/";
-pub static WEATHER_CONDITIONS: [(&'static str, u32);48] = [
+static WEATHER_CONDITIONS: [(&'static str, u32);48] = [
           ("Sunny", 1000)
         , ("Partly Cloudy", 1003)
         , ("Cloudy", 1006)
