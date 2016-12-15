@@ -1,63 +1,66 @@
 
 extern crate serde_json;
+extern crate termcolor;
 extern crate hyper;
 
 pub use hyper::client::Client;
 use std::io::Read;
 use std;
+use std::process;
 use std::env;
+use std::io::Write;
+use self::termcolor::{Color, ColorChoice, ColorSpec, Stdout, WriteColor};
 
 static APIXU_URL: &'static str = "https://api.apixu.com/v1/";
-static WEATHER_CONDITIONS: [(&'static str, u32);48] = [
-          ("Sunny", 1000)
-        , ("Partly Cloudy", 1003)
-        , ("Cloudy", 1006)
-        , ("Overcast", 1009)
-        , ("Mist", 1030)
-        , ("Patchy rain nearby", 1063)
-        , ("Patchy snow nearby", 1066)
-        , ("Patchy sleet nearby", 1069)
-        , ("Patchy freezing drizzle nearby", 1072)
-        , ("Thundery outbreaks in nearby", 1087)
-        , ("Blowing snow", 1114)
-        , ("Blizzard", 1117)
-        , ("Fog", 1135)
-        , ("Freezing fog", 1147)
-        , ("Patchy light drizzle", 1150)
-        , ("Light drizzle", 1153)
-        , ("Freezing drizzle", 1168)
-        , ("Heavy freezing drizzle", 1171)
-        , ("Patchy light rain", 1180)
-        , ("Light rain", 1183)
-        , ("Moderate rain at times", 1186)
-        , ("Moderate rain", 1189)
-        , ("Heavy rain at times", 1192)
-        , ("Heavy rain", 1195 )
-        , ("Light freezing rain", 1198)
-        , ("Moderate or heavy freezing rain", 1201)
-        , ("Light sleet", 1204)
-        , ("Moderate or heavy sleet", 1207)
-        , ("Patchy light snow", 1210)
-        , ("Light snow", 1213)
-        , ("Patchy moderate snow", 1216)
-        , ("Moderate snow", 1219)
-        , ("Patchy heavy snow", 1222)
-        , ("Heavy snow", 1225)
-        , ("Ice pellets", 1237)
-        , ("Light rain shower", 1240)
-        , ("Moderate or heavy rain shower", 1243)
-        , ("Torrential rain shower", 1246)
-        , ("Light sleet showers", 1249)
-        , ("Moderate or heavy sleet showers", 1252)
-        , ("Light snow showers", 1255)
-        , ("Moderate or heavy snow showers", 1258)
-        , ("Light showers of ice pellets", 1261)
-        , ("Moderate or heavy showers of ice pellets", 1264)
-        , ("Patchy light rain in area with thunder", 1273)
-        , ("Moderate or heavy rain in area with thunder", 1276)
-        , ("Patchy light snow in area with thunder", 1279)
-        , ("Moderate or heavy snow in area with thunder", 1282)
-];
+static WEATHER_CONDITIONS: [(&'static str, u32); 48] =
+    [("Sunny", 1000),
+     ("Partly Cloudy", 1003),
+     ("Cloudy", 1006),
+     ("Overcast", 1009),
+     ("Mist", 1030),
+     ("Patchy rain nearby", 1063),
+     ("Patchy snow nearby", 1066),
+     ("Patchy sleet nearby", 1069),
+     ("Patchy freezing drizzle nearby", 1072),
+     ("Thundery outbreaks in nearby", 1087),
+     ("Blowing snow", 1114),
+     ("Blizzard", 1117),
+     ("Fog", 1135),
+     ("Freezing fog", 1147),
+     ("Patchy light drizzle", 1150),
+     ("Light drizzle", 1153),
+     ("Freezing drizzle", 1168),
+     ("Heavy freezing drizzle", 1171),
+     ("Patchy light rain", 1180),
+     ("Light rain", 1183),
+     ("Moderate rain at times", 1186),
+     ("Moderate rain", 1189),
+     ("Heavy rain at times", 1192),
+     ("Heavy rain", 1195),
+     ("Light freezing rain", 1198),
+     ("Moderate or heavy freezing rain", 1201),
+     ("Light sleet", 1204),
+     ("Moderate or heavy sleet", 1207),
+     ("Patchy light snow", 1210),
+     ("Light snow", 1213),
+     ("Patchy moderate snow", 1216),
+     ("Moderate snow", 1219),
+     ("Patchy heavy snow", 1222),
+     ("Heavy snow", 1225),
+     ("Ice pellets", 1237),
+     ("Light rain shower", 1240),
+     ("Moderate or heavy rain shower", 1243),
+     ("Torrential rain shower", 1246),
+     ("Light sleet showers", 1249),
+     ("Moderate or heavy sleet showers", 1252),
+     ("Light snow showers", 1255),
+     ("Moderate or heavy snow showers", 1258),
+     ("Light showers of ice pellets", 1261),
+     ("Moderate or heavy showers of ice pellets", 1264),
+     ("Patchy light rain in area with thunder", 1273),
+     ("Moderate or heavy rain in area with thunder", 1276),
+     ("Patchy light snow in area with thunder", 1279),
+     ("Moderate or heavy snow in area with thunder", 1282)];
 
 struct ApixuCfg {
     api_key: String,
@@ -67,28 +70,28 @@ type City = String;
 
 #[derive(Deserialize, Debug, Default)]
 pub struct Location {
-    ///Latitude in decimal degree
+    /// Latitude in decimal degree
     lat: f32,
-    ///Longitude in decimal degree
+    /// Longitude in decimal degree
     lon: f32,
     /// Location name
     name: String,
     /// Region or state of the location, if available
     region: Option<String>,
     /// Location country
-    country:  String,
+    country: String,
     /// Time zone name
-    tz_id:  String,
+    tz_id: String,
     /// Local date and time in unix time
     localtime_epoch: u32,
     /// Local date and time
-    localtime:  String
+    localtime: String,
 }
 
 #[derive(Deserialize, Debug, Default)]
 pub struct CurrentWeather {
     pub location: Location,
-    pub current: Current
+    pub current: Current,
 }
 
 #[derive(Deserialize, Debug, Default)]
@@ -165,23 +168,48 @@ impl From<std::io::Error> for ApixuError {
 
 lazy_static! {
     static ref APIXU_CFG: ApixuCfg = {
-        let acfg = ApixuCfg {
-            api_key: env::var("APIXU_API_KEY").expect("You need to the env var APIXU_API_KEY to be set.")
-        };
-        acfg
+        ApixuCfg { api_key: get_apixu_key() }
     };
+}
+
+// TODO: Investigate how/if termcolor supports stderr.
+fn get_apixu_key() -> String {
+    match env::var("APIXU_API_KEY") {
+        Err(_) => {
+            let mut stdout = Stdout::new(ColorChoice::Always);
+            let _ = stdout.set_color(ColorSpec::new().set_fg(Some(Color::Red)));
+            let _ = writeln!(&mut stdout,
+                             r###"
+You need to the env var APIXU_API_KEY to be set. (Try 'export APIXU_API_KEY=xxxxxx...')
+Please go to "https://www.apixu.com/" and create a new free account in
+order to get a valid API key for the weather service.
+
+Visit the "Prerequisites" section of the README for more information.
+"###);
+            process::exit(1);
+        }
+        Ok(v) => v,
+    }
 }
 
 // Build an Url to be used by Hyper.
 fn mk_url(uri_path: &str, params: Vec<(&str, &String)>) -> String {
-    let param_string: String = params.iter().fold(String::new(), |acc, &x| format!("{}&{}={}", acc, x.0, x.1));
-    String::from(format!("{}{}?key={}{}", APIXU_URL, uri_path, APIXU_CFG.api_key, param_string))
+    let param_string: String = params.iter()
+        .fold(String::new(), |acc, &x| format!("{}&{}={}", acc, x.0, x.1));
+    String::from(format!("{}{}?key={}{}",
+                         APIXU_URL,
+                         uri_path,
+                         APIXU_CFG.api_key,
+                         param_string))
 }
 
 /// Gets the current weather based on Auto IP.
 // TODO: Better error handling.
-pub fn current_weather(client: &hyper::client::Client, city: Option<City>) -> Result<CurrentWeather, ApixuError> {
-    let url = mk_url("current.json", vec![("q", &city.unwrap_or("auto:ip".to_owned()))]);
+pub fn current_weather(client: &hyper::client::Client,
+                       city: Option<City>)
+                       -> Result<CurrentWeather, ApixuError> {
+    let url = mk_url("current.json",
+                     vec![("q", &city.unwrap_or("auto:ip".to_owned()))]);
     let mut response = try!(client.get(&url).send());
     if response.status != hyper::status::StatusCode::Ok {
         return Err(ApixuError::InvalidRequest(url, response));
@@ -194,11 +222,13 @@ pub fn current_weather(client: &hyper::client::Client, city: Option<City>) -> Re
 
 pub fn parse_hours_from_last_updated<'a>(last_updated: &'a str) -> Option<u8> {
     match *last_updated.to_owned().split_whitespace().collect::<Vec<_>>().as_slice() {
-        [_,time] => match *time.split(":").collect::<Vec<_>>().as_slice() {
-            [h,_] => return str::parse(h).ok(),
-            _     => return None
-        },
-        _        => return None
+        [_, time] => {
+            match *time.split(":").collect::<Vec<_>>().as_slice() {
+                [h, _] => return str::parse(h).ok(),
+                _ => return None,
+            }
+        }
+        _ => return None,
     }
 }
 
@@ -214,7 +244,7 @@ mod tests {
             Ok(cw) => {
                 assert_eq!(cw.location.name, "Marsala");
                 assert_eq!(cw.location.country, "Italy")
-            },
+            }
             Err(e) => panic!(format!("{:?}", e)),
         }
     }

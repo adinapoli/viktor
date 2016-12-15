@@ -88,7 +88,7 @@ pub fn cli() -> App<'static, 'static> {
         .value_name("INTENSITY")
         .help("easy run|long run|hard workout|race")
         .required(true);
-    let app = App::new("Runiterm")
+    let app = App::new("Viktor")
         .version("0.0.1")
         .author("Alfredo Di Napoli")
         .about("Display on iTerm what to wear while running")
