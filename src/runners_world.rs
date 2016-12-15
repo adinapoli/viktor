@@ -58,6 +58,9 @@ impl FormBuilder {
         match parse_hours_from_last_updated(&w.current.last_updated.to_string()) {
             None => return "day", //Assume day by default
             Some(h) => {
+                if w.current.is_day == 0 {
+                    return "night";
+                }
                 if h < 8 {
                     return "dawn";
                 }

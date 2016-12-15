@@ -137,7 +137,7 @@ pub struct Current {
     pub feelslike_c: f32,
     /// Feels like temperature as fahrenheit
     feelslike_f: f32,
-    is_day: u8, // 1 = Yes 0 = No
+    pub is_day: u8, // 1 = Yes 0 = No
 }
 
 #[derive(Debug)]
