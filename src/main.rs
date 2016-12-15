@@ -1,9 +1,12 @@
-
-#[macro_use] extern crate lazy_static;
+#![feature(proc_macro)]
+#![feature(slice_patterns)]
 
 extern crate hyper;
 extern crate select;
-extern crate rustc_serialize;
+
+#[macro_use] extern crate serde_derive;
+#[macro_use] extern crate serde;
+#[macro_use] extern crate lazy_static;
 
 use hyper::client::Client;
 
@@ -20,7 +23,14 @@ mod cli;
 
 #[derive(Debug)]
 enum AppError {
-    CliError(cli::CliParseError)
+    CliError(cli::CliParseError),
+    GenericError(std::string::String)
+}
+
+impl From<apixu_weather::ApixuError> for AppError {
+    fn from(err: apixu_weather::ApixuError) -> AppError {
+        AppError::GenericError(format!("{:?}", err))
+    }
 }
 
 fn main() {
@@ -36,13 +46,16 @@ fn main() {
 fn run(args: cli::Args) -> Result<(), AppError> {
     let client = Client::new();
     let mut body = String::new();
-    let _ = client.get(runners_world::RUNNERS_WORLD_URL)
+
+    let weather = try!(apixu_weather::current_weather(&client, args.city));
+    let form_builder = runners_world::FormBuilder::new(&args.gender, &args.intensity, &weather);
+    let url = form_builder.to_url().to_string();
+
+    let _ = client.get(&url)
         .send()
         .map(|mut r| r.read_to_string(&mut body))
         .expect("Couldn't contact Runner's World website.");
     let document = Document::from(body.as_str());
-
-    let weather = apixu_weather::current_weather(&client, args.city);
 
     for node in document.find(Attr("id", "content")) {
         let pred = Name("table").descendant(Name("table").descendant(Name("td")));

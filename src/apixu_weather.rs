@@ -1,14 +1,63 @@
 
-extern crate rustc_serialize;
+extern crate serde_json;
 extern crate hyper;
 
 pub use hyper::client::Client;
 use std::io::Read;
 use std;
 use std::env;
-use rustc_serialize::json;
 
 static APIXU_URL: &'static str = "https://api.apixu.com/v1/";
+pub static WEATHER_CONDITIONS: [(&'static str, u32);48] = [
+          ("Sunny", 1000)
+        , ("Partly Cloudy", 1003)
+        , ("Cloudy", 1006)
+        , ("Overcast", 1009)
+        , ("Mist", 1030)
+        , ("Patchy rain nearby", 1063)
+        , ("Patchy snow nearby", 1066)
+        , ("Patchy sleet nearby", 1069)
+        , ("Patchy freezing drizzle nearby", 1072)
+        , ("Thundery outbreaks in nearby", 1087)
+        , ("Blowing snow", 1114)
+        , ("Blizzard", 1117)
+        , ("Fog", 1135)
+        , ("Freezing fog", 1147)
+        , ("Patchy light drizzle", 1150)
+        , ("Light drizzle", 1153)
+        , ("Freezing drizzle", 1168)
+        , ("Heavy freezing drizzle", 1171)
+        , ("Patchy light rain", 1180)
+        , ("Light rain", 1183)
+        , ("Moderate rain at times", 1186)
+        , ("Moderate rain", 1189)
+        , ("Heavy rain at times", 1192)
+        , ("Heavy rain", 1195 )
+        , ("Light freezing rain", 1198)
+        , ("Moderate or heavy freezing rain", 1201)
+        , ("Light sleet", 1204)
+        , ("Moderate or heavy sleet", 1207)
+        , ("Patchy light snow", 1210)
+        , ("Light snow", 1213)
+        , ("Patchy moderate snow", 1216)
+        , ("Moderate snow", 1219)
+        , ("Patchy heavy snow", 1222)
+        , ("Heavy snow", 1225)
+        , ("Ice pellets", 1237)
+        , ("Light rain shower", 1240)
+        , ("Moderate or heavy rain shower", 1243)
+        , ("Torrential rain shower", 1246)
+        , ("Light sleet showers", 1249)
+        , ("Moderate or heavy sleet showers", 1252)
+        , ("Light snow showers", 1255)
+        , ("Moderate or heavy snow showers", 1258)
+        , ("Light showers of ice pellets", 1261)
+        , ("Moderate or heavy showers of ice pellets", 1264)
+        , ("Patchy light rain in area with thunder", 1273)
+        , ("Moderate or heavy rain in area with thunder", 1276)
+        , ("Patchy light snow in area with thunder", 1279)
+        , ("Moderate or heavy snow in area with thunder", 1282)
+];
 
 struct ApixuCfg {
     api_key: String,
@@ -16,7 +65,7 @@ struct ApixuCfg {
 
 type City = String;
 
-#[derive(RustcDecodable, Debug, Default)]
+#[derive(Deserialize, Debug, Default)]
 pub struct Location {
     ///Latitude in decimal degree
     lat: f32,
@@ -36,27 +85,33 @@ pub struct Location {
     localtime:  String
 }
 
-#[derive(RustcDecodable, Debug, Default)]
+#[derive(Deserialize, Debug, Default)]
 pub struct CurrentWeather {
-    location: Location,
-    current: Current
+    pub location: Location,
+    pub current: Current
 }
 
-#[derive(RustcDecodable, Debug, Default)]
+#[derive(Deserialize, Debug, Default)]
+pub struct WeatherCondition {
+    text: String,
+    pub code: u32,
+}
+
+#[derive(Deserialize, Debug, Default)]
 pub struct Current {
     /// Local time when the real time data was updated.
-    last_updated: String,
+    pub last_updated: String,
     /// Local time when the real time data was updated in unix time.
     last_updated_epoch: i32,
     /// Temperature in celsius
-    temp_c: f32,
+    pub temp_c: f32,
     /// Temperature in fahrenheit
-    temp_f: f32,
+    pub temp_f: f32,
     // condition:text	string	Weather condition text
     // condition:icon	string	Weather icon url
-    // condition:code	int	Weather condition unique code.
+    pub condition: WeatherCondition,
     /// Wind speed in miles per hour
-    wind_mph: f32,
+    pub wind_mph: f32,
     /// Wind speed in kilometer per hour
     wind_kph: f32,
     /// Wind direction in degrees
@@ -76,7 +131,7 @@ pub struct Current {
     /// Cloud cover as percentage
     cloud: u8,
     /// Feels like temperature as celcius
-    feelslike_c: f32,
+    pub feelslike_c: f32,
     /// Feels like temperature as fahrenheit
     feelslike_f: f32,
     is_day: u8, // 1 = Yes 0 = No
@@ -87,7 +142,7 @@ pub enum ApixuError {
     FailedToContactRemoteHost(hyper::error::Error),
     InvalidRequest(String, hyper::client::Response),
     IOError(std::io::Error),
-    ParseJsonError(json::DecoderError),
+    ParseJsonError(serde_json::error::Error),
 }
 
 impl From<hyper::error::Error> for ApixuError {
@@ -96,8 +151,8 @@ impl From<hyper::error::Error> for ApixuError {
     }
 }
 
-impl From<json::DecoderError> for ApixuError {
-    fn from(err: json::DecoderError) -> ApixuError {
+impl From<serde_json::error::Error> for ApixuError {
+    fn from(err: serde_json::error::Error) -> ApixuError {
         ApixuError::ParseJsonError(err)
     }
 }
@@ -133,8 +188,18 @@ pub fn current_weather(client: &hyper::client::Client, city: Option<City>) -> Re
     }
     let mut body = String::new();
     let _ = try!(response.read_to_string(&mut body));
-    let cw: CurrentWeather = try!(json::decode(&body));
+    let cw: CurrentWeather = try!(serde_json::from_str(&body));
     Ok(cw)
+}
+
+pub fn parse_hours_from_last_updated<'a>(last_updated: &'a str) -> Option<u8> {
+    match *last_updated.to_owned().split_whitespace().collect::<Vec<_>>().as_slice() {
+        [_,time] => match *time.split(":").collect::<Vec<_>>().as_slice() {
+            [h,_] => return str::parse(h).ok(),
+            _     => return None
+        },
+        _        => return None
+    }
 }
 
 #[cfg(test)]
@@ -152,5 +217,13 @@ mod tests {
             },
             Err(e) => panic!(format!("{:?}", e)),
         }
+    }
+
+    #[test]
+    fn can_parse_last_updated_field_into_hours() {
+        let test1 = "2016-12-15 09:22";
+        let test2 = "2016-12-15 3:24";
+        assert_eq!(parse_hours_from_last_updated(&test1), Some(9));
+        assert_eq!(parse_hours_from_last_updated(&test2), Some(3));
     }
 }
