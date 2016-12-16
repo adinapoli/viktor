@@ -1,7 +1,7 @@
 
 # Viktor, your personal running outfit assistant
 
-![v](https://cloud.githubusercontent.com/assets/442035/21232347/842fa4e8-c2eb-11e6-8e75-c369ed1d8125.png)
+![screen shot 2016-12-16 at 15 05 37](https://cloud.githubusercontent.com/assets/442035/21265305/2a6040ce-c3a1-11e6-9e83-e91cd494a945.png)
 
 ## Prerequisites
 
