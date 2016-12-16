@@ -49,7 +49,7 @@ you will need to export the following env var:
 export APIXU_API_KEY=xxxxxxxxxxx // Your key
 ```
 
-* [FAQ](#faq)
+### FAQ
 
 * Where the name "Viktor" comes from?
 
