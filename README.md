@@ -6,6 +6,7 @@
 ## Table of Contents
 
 * [About](#about)
+* [Installation](#installation)
 * [Features](#features)
 * [Limitations](#limitations)
 * [Prerequisites](#prerequisites)
@@ -17,6 +18,19 @@
 Viktor is, at its core, a simple wrapper around the ["what to wear?"](http://www.runnersworld.com/what-to-wear) service
 of the Runner's World website. What Viktor adds is trying to automate the process as much as possible, by fetching
 the current weather via the [Apixu](https://www.apixu.com) weather API.
+
+### Installation
+
+**You will need Rust 1.15 nightly in order to build Viktor** (this is due to the dependency on Serde and
+the super convenient deserialization-deriving).
+
+You can install this as any other Rust project:
+
+```
+git clone git@github.com:adinapoli/viktor.git
+cd viktor
+cargo install
+```
 
 ### Features
 
